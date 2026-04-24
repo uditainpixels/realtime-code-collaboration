@@ -1,0 +1,7 @@
+Socket Connection Failed?
+The server is failing because your package.json has "type": "module" which makes Node.js treat .js files as ES modules, but server.js uses CommonJS syntax ( require ).
+
+Copy button?
+usme toast aur console log lagakr fixkiya ab wohterminal pr show ho rha has
+
+now jo editor page ki file h - usse listen krne k liye socket js m daalenge
