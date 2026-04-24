@@ -1,7 +1,11 @@
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { ACTIONS } from './src/Actions.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const app = express()
 const httpServer = createServer(app)
@@ -13,9 +17,9 @@ const io = new Server(httpServer, {
     transports: ['websocket', 'polling']
 })
 
-app.use(express.static('build'));
+app.use(express.static('dist'));
 app.use((req, res, next) => {
-    res.sendFile(path.join(__dirname, 'build', 'index'));
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 })
 
 
