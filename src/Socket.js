@@ -5,10 +5,12 @@ export const initSocket = () => {
         forceNew: true,
         reconnectionAttempts: 'Infinity',
         timeout: 10000,
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'], // Use polling first for better compatibility
     };
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-    console.log('Connecting to backend:', backendUrl);
+    // If we are in production, use the same origin where the app is hosted.
+    // Otherwise fallback to VITE_BACKEND_URL or localhost for local development.
+    const backendUrl = import.meta.env.PROD ? "" : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000');
+    console.log('Connecting to backend:', backendUrl || window.location.origin);
     return io(backendUrl, options);
 };

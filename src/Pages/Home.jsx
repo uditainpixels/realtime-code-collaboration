@@ -38,7 +38,7 @@ const Home = () => {
   return (
     <div className='homePagewrapper'>
         <div className='formWrapper'>
-          <img src="/logo.png" alt="codesync-logo" />
+          <img className='logoImage' src="/logo.png" alt="codesync-logo" />
           <h4 className='mainLabel'>Paste invitation Room ID</h4>
           <div className='inputGroup'>
             <input 

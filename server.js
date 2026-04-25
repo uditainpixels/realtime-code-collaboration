@@ -4,6 +4,11 @@ import { Server } from 'socket.io'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { ACTIONS } from './src/Actions.js'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -14,13 +19,21 @@ const io = new Server(httpServer, {
         origin: "*",
         methods: ["GET", "POST"],
     },
-    transports: ['websocket', 'polling']
+    transports: ['polling', 'websocket'] // Allow polling for better compatibility
 })
 
 app.use(express.static('dist'));
-app.use((req, res, next) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-})
+
+// Serve index.html for all other routes (SPA support)
+app.use((req, res) => {
+    const indexPath = path.join(__dirname, 'dist', 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            // If the file doesn't exist (e.g. in dev), just send a simple message
+            res.status(404).send('Frontend build not found. If you are in development, please use the Vite dev server.');
+        }
+    });
+});
 
 
 const userSocketMap = {}
@@ -60,6 +73,14 @@ io.on('connection', (socket) => {
      socket.on(ACTIONS.SYNC_CODE, ({ socketId, code }) => {
         io.to(socketId).emit(ACTIONS.CODE_CHANGE, { code });
     })
+
+    socket.on(ACTIONS.CURSOR_CHANGE, ({ roomId, cursor, username }) => {
+        socket.in(roomId).emit(ACTIONS.CURSOR_CHANGE, {
+            socketId: socket.id,
+            cursor,
+            username,
+        });
+    });
 
     // Handle disconnection
     socket.on('disconnecting', () => {

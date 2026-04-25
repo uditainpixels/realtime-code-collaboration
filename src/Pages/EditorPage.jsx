@@ -22,64 +22,58 @@ const EditorPage = () => {
   //useparams- react router ka hook hai jise hum url se parameters ko access karne ke liye use karte hain, yaha pe hum roomId ko url se access kar rahe hain
 
   useEffect(() => {
-      const init = async () => {
-        socketRef.current = initSocket();
-        socketRef.current.on('connect_error', (err) => handleErrors(err)); //websocket error handling - connection error
-        socketRef.current.on('connect_failed', (err) => handleErrors(err)); //websocket error handling - connection failed
+    const init = () => {
+      socketRef.current = initSocket();
 
-        function handleErrors(e) {
-          console.log('socket error', e);
-          toast.error('Socket connection failed, trying to reconnect...');
-          // Let socket.io handle reconnections instead of immediately navigating away
-          // navigate('/'); 
-        } 
-          
+      const handleErrors = (e) => {
+        console.error('Socket error details:', e);
+        toast.error(`Socket connection failed`);
+        navigate('/');
+      };
 
-        // We delay the JOIN emit until the Editor component is fully mounted
-        // and has attached its CODE_CHANGE socket listener.
-        // This is handled by the onReady callback on the Editor component.
+      socketRef.current.on('connect_error', handleErrors);
+      socketRef.current.on('connect_failed', handleErrors);
 
-        socketRef.current.on(
-          ACTIONS.JOINED,
-          ({ clients, username, socketId }) => {
-            // Compare socket IDs instead of usernames to ensure unique identification
-            if (socketId !== socketRef.current.id) {
-              toast.success(`${username} joined the room.`);
-              console.log(`${username} joined`);
-              
-              // Only existing users should send their code to the new user.
-              // If the new user sends it to themselves, they might overwrite 
-              // the code with their initial empty editor state.
-              socketRef.current.emit(ACTIONS.SYNC_CODE, {
-                code: codeRef.current,
-                socketId,
-              });
-            }
-            setClients(clients);
-      });
-
-        socketRef.current.on(
-          ACTIONS.DISCONNECTED,
-          ({ socketId, username }) => {
-            toast.success(`${username} left the room.`);
-            setClients((prev) =>
-              prev.filter((client) => client.socketId !== socketId)
-            );
+      socketRef.current.on(
+        ACTIONS.JOINED,
+        ({ clients, username, socketId }) => {
+          if (socketId !== socketRef.current.id) {
+            toast.success(`${username} joined the room.`);
+            console.log(`${username} joined`);
+            
+            socketRef.current.emit(ACTIONS.SYNC_CODE, {
+              code: codeRef.current,
+              socketId,
+            });
           }
-        );
-        
-      };
-      init();
-
-      // Cleanup on unmount
-      return () => {
-        if (socketRef.current) {
-          socketRef.current.disconnect();
-          socketRef.current.off(ACTIONS.JOINED);
-          socketRef.current.off(ACTIONS.DISCONNECTED);
+          setClients(clients);
         }
-      };
-  },[])
+      );
+
+      socketRef.current.on(
+        ACTIONS.DISCONNECTED,
+        ({ socketId, username }) => {
+          toast.success(`${username} left the room.`);
+          setClients((prev) =>
+            prev.filter((client) => client.socketId !== socketId)
+          );
+        }
+      );
+    };
+
+    init();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current.off('connect_error');
+        socketRef.current.off('connect_failed');
+        socketRef.current.off(ACTIONS.JOINED);
+        socketRef.current.off(ACTIONS.DISCONNECTED);
+      }
+    };
+  }, [navigate]);
+
 
   const [clients, setClients] = useState([
    
@@ -104,6 +98,20 @@ const EditorPage = () => {
   if (!location.state) {
     return <Navigate to="/" />;
   }
+
+  const handleCodeChange = React.useCallback((code) => {
+    codeRef.current = code;
+  }, []);
+
+  const handleReady = React.useCallback(() => {
+    // Now we are sure the editor listener is registered, we can join.
+    if (socketRef.current) {
+      socketRef.current.emit(ACTIONS.JOIN, {
+        roomId,
+        username: location.state?.username,
+      });
+    }
+  }, [roomId, location.state?.username]);
 
   return (
     <div className='mainWrap'>
@@ -131,21 +139,12 @@ const EditorPage = () => {
         <Editor 
             socketRef={socketRef}
             roomId={roomId}
-            onCodeChange={(code) => {
-                codeRef.current = code;
-            }}
-            onReady={() => {
-                // Now we are sure the editor listener is registered, we can join.
-                if (socketRef.current) {
-                    socketRef.current.emit(ACTIONS.JOIN, {
-                        roomId,
-                        username: location.state?.username,
-                    });
-                }
-            }}
+            username={location.state?.username}
+            onCodeChange={handleCodeChange}
+            onReady={handleReady}
         />
       </div>
     </div>
-  )
+  );
 }
 export default EditorPage

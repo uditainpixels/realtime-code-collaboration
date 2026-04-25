@@ -4,12 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "node server.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
     "server:dev": "nodemon server.js",
     "server:prod": "node server.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "gcp-build": "npm run build"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
